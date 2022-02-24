@@ -1,0 +1,94 @@
+version: 2.1
+docker: 
+ - image: cimg/node:17.5.0
+orbs:
+  node: circleci/node@5.0.0
+  puppeteer: threetreeslight/puppeteer@0.1.2
+  browser-tools: circleci/browser-tools@1.2.4
+jobs:
+  build-and-test:
+    executor:
+      name: node/default
+    steps: 
+      - setup_remote_docker
+      - browser-tools/install-chrome
+      - browser-tools/install-chromedriver
+      - checkout
+      - run:
+          name: Run Tests
+          command: | 
+            google-chrome --version
+            chromedriver --version
+            export APPLITOOLS_BATCH_ID=`echo $CIRCLE_SHA1`
+            echo $APPLITOOLS_BATCH_ID
+            echo $APPLITOOLS_API_KEY
+            echo "Installing deps"
+            npm install
+            echo "building static storybook"
+            npx build-storybook
+            docker build -t app:$APPLITOOLS_BATCH_ID .
+            docker run -dp 8086:8086 app:$APPLITOOLS_BATCH_ID 
+  build-and-test-2:
+    executor:
+      name: node/default
+    steps: 
+      - setup_remote_docker
+      - browser-tools/install-chrome
+      - browser-tools/install-chromedriver
+      - checkout
+      - run:
+          name: Run Tests
+          command: | 
+            google-chrome --version
+            chromedriver --version
+            export APPLITOOLS_BATCH_ID=`echo $CIRCLE_SHA1`
+            echo $APPLITOOLS_BATCH_ID
+            echo $APPLITOOLS_API_KEY
+            echo "Installing deps"
+            npm install
+            echo "building static storybook"
+            npx build-storybook
+            docker build -t app$APPLITOOLS_BATCH_ID .
+            docker run -dp 8086:8086 --name app$APPLITOOLS_BATCH_ID  app$APPLITOOLS_BATCH_ID 
+            npx eyes-storybook
+  build-and-test-3:
+    executor:
+      name: node/default
+    steps: 
+      - setup_remote_docker
+      - browser-tools/install-chrome
+      - browser-tools/install-chromedriver
+      - checkout
+      - run:
+          name: Start storybook service declared in docker-compose.yml
+          command: docker-compose up -d
+      - run:
+          name: Run Tests
+          command: | 
+            export APPLITOOLS_BATCH_ID=`echo $CIRCLE_SHA1`
+            echo $APPLITOOLS_BATCH_ID
+            npm install
+            npx eyes-storybook
+  build-and-test-4:
+    executor:
+      name: node/default
+    steps: 
+      - setup_remote_docker
+      - browser-tools/install-chrome
+      - browser-tools/install-chromedriver
+      - checkout
+      - run:
+          name: Start storybook service declared in docker-compose.yml
+          command: docker-compose up -d
+      - run:
+          name: Run Tests
+          command: | 
+            export APPLITOOLS_BATCH_ID=`echo $CIRCLE_SHA1`
+            echo $APPLITOOLS_BATCH_ID
+            npm install
+            npx eyes-storybook -u https://localhost:8086 
+    
+workflows:
+    build-and-test:
+      jobs:
+        - build-and-test-2
